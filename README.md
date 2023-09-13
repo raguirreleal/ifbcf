@@ -7,6 +7,8 @@ O cálculo do indicador de formação bruta de capital fixo (FBCF) se baseia no 
 capital. “Os dados mensais são obtidos a partir das séries de quantum de exportação e de importação e das séries 
 de produção física da indústria.”
 
+Web scraping de dados nos repositórios do IBGE.
+
 Três etapas para construção do indicador, seguindo a referência:
 1. Criar indicador de produção física mensal para FBCF;
    - Criar indicador para bens de capial, a partir do PIM-PF;
