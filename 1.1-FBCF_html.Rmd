@@ -1,0 +1,185 @@
+---
+title: '**INDICADOR MENSAL FBCF**'
+author: 'Ricardo Aguirre Leal <br/> *ricardo.leal@furg.br*'
+date: '*Versão: 0.1.0 -- `r format(Sys.time(), "%d de %B de %Y")`*'
+output:
+  html_document:
+    df_print: kable
+    fig_width: 8
+    highlight: tango
+    number_sections: true
+    theme: lumen
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+<style type="text/css"> body{font-size: 14pt;} </style>
+
+```{r include=F}
+knitr::opts_chunk$set(
+  echo = T
+)
+```
+
+```{r include=F}
+library(readxl); library(foreach)
+#library(seasonal); library(seasonalview); library(forecast)
+library(RCurl); library(rvest); library(zoo)
+library(dygraphs); library(xts); library(kableExtra)
+library(magrittr); library(tidyverse)
+```
+
+```{r include=F}
+# ==== Definir opções download:
+# TRU atual: download novamente, se já feito?
+redown_tru = FALSE 
+# PMI atual: download novamente, se já feito?
+redown_pmi = TRUE 
+
+# ==== Definir Diretórios:
+# Diretório de trabalho
+dir_trab = getwd()
+# Diretório para os dados de input
+subdir_dados = "02-Inputs" 
+dir_dados = file.path(dir_trab, subdir_dados)
+# Diretório para as funções
+subdir_func = "01-Functions" 
+dir_func = file.path(dir_trab, subdir_func)
+
+# ==== Definir opções exibição:
+options(tibble.print_max = 100, tibble.print_min = 40)
+#options(tibble.print_max = 50)
+
+# ==== Ler funções:
+list.files(dir_func, full.names=T) %>% sapply(source) 
+```
+
+
+***
+
+Construção do indicador baseado <a
+href="https://portalantigo.ipea.gov.br/agencia/images/stories/PDFs/TDs/td_2101.pdf"> *Texto para Discussão 2101* </a>, de jun/2015, do IPEA: **Indicadores de Consumo Aparente de Bens Industriais: Metodologia e Resultados** (Carvalho; Ribeiro). Web scraping dos dados do IBGE via FTP direto e por *query* em URL do SIDRA.
+
+O cálculo do indicador de formação bruta de capital fixo (FBCF) se baseia no Consumo Aparente (CA) de bens de capital. "Os dados mensais são obtidos a partir das séries de quantum de exportação e de importação e das séries de produção física da indústria."
+
+O indicador é uma média ponderada do valor da produção, das importações e das exportações industriais. As ponderações são dadas pelo peso de cada um dos três componentes na demanda total.
+
+"Fontes: os dados do Sistema de Contas Nacionais (SCN) e da PIM-PF, todas calculadas pelo IBGE, bem como as estatísticas de quantum de exportações e importações publicadas mensalmente pela Fundação Centro de Estudos do Comércio Exterior (Funcex)."
+
+Três etapas para construção do indicador, seguindo a referência:
+
+1.  Criar indicador de produção física mensal para FBCF;
+    -   Criar indicador para bens de capial, a partir do PIM-PF;
+    -   Obter o índice de produção física de insumos para construção civil, a partir do PIM-PF;
+    -   Criar indicador de produção física mensal para FBCF, a partir de uma média ponderada dos outros dois;
+2.  Calcular os pesos anuais da i) produção, ii) importação e iii) exportação no CA da FBCF;
+3.  Criar o índice mensal de FBCF, usando o indicador de produção física e os pesos dos componentes do CA.
+
+Para obtenção dos dados, web scraping do IBGE via FTP direto (SCN) e por *query* em URL do SIDRA (PIM-PF.
+
+***
+
+# Etapa 1:
+
+"Índices mensais de produção física da indústria divulgados pela PIM-PF, desagregados segundo uma lista de produtos do setor industrial -- desagregação que é igual à utilizada nas Tabelas de Recursos e Usos (TRUs) do SCN, com dados a preços correntes.". "Peso de cada um dos produtos dessa lista no valor total da produção da indústria a cada ano, a partir dos dados das TRUs do SCN."
+
+## Indicador para bens de capital:
+
+### *Web scraping dos dados da TRU em arquivos `.xls`*
+
+Via FTP, a partir da url https://ftp.ibge.gov.br/Contas_Nacionais/Sistema_de_Contas_Nacionais/. Download das tabelas de todos os períodos disponíveis para o nível 68. Uso das tabelas 4, planilhas `demanda` dos arquivos `xls`. Ver scripts `2.0-download_tru.R` e `3.0-pesos_q.R`para mais informações.
+
+```{r}
+source("2.0-download_tru.R") %>% suppressMessages() %>% suppressWarnings()
+```
+
+Lista de arquivos das TRU nível 68:
+```{r echo=FALSE}
+tab_arqs_tru %>% kable("html") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
+                font_size = 12, position = "center") %>%
+  scroll_box(width = "50%", height = "300px")
+```
+
+### *Calculo dos pesos $q$*
+
+Cálculo da parcela da *produção* total de um *bem específico*, em relação à sua *produção* para FBCF. É utilizada como proxy a parcela da *demanda* total do bem, em relação à sua *demanda* para FBCF: $$ q_j=\frac{USO_j}{DT_j}  $$ onde: $q$ é a proporção descrita; $USO_j$ é a demanda do produto $j$ para FBCF; e $DT_j$ é a demanda total do produto $j$. 
+
+```{r}
+source("3.0-pesos_q.R") %>% suppressMessages() %>% suppressWarnings()
+```
+
+Tabela com os pesos `q` para cada bem (código SCN), por ano (2011 a 2020):
+```{r echo=FALSE}
+m_q %>% kable("html") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), font_size = 12) %>%
+  scroll_box(width = "100%", height = "400px")
+```
+
+### *Web scraping da PIM-PF, classes*
+
+Download dos dados da PIM-PF classes em arquivo `.xlsx`
+
+Via query na URL do SIDRA/IBGE: https://sidra.ibge.gov.br/geratabela. 
+
+- Agregado `8885` *Produção Física Industrial por grupos, classes indicadores selecionados*, variável `12606`*Número-índice (2022=100)*, período *jan/2011-dez/2021*, todas as categorias da classificação `542`. 
+
+- Agregado `8886` *Produção Física Industrial dos insumos típicos da construção civil*, variável `12606`*Número-índice (2022=100)*, período *jan/2011-dez/2021*.
+
+Ver script `4.0-download_pim.R` para mais informações.
+
+```{r}
+source("4.0-download_pim.R") %>% suppressMessages() %>% suppressWarnings()
+```
+
+Tabela com o número-índice da produção física industrial, por código CNAE 2.0:
+```{r echo=FALSE}
+pim %>% kable("html") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), font_size = 12) %>%
+  scroll_box(width = "100%", height = "400px")
+```
+
+\ \
+Tabela com o número-índice da produção física industrial, insumos da construção civíl:
+```{r echo=FALSE}
+pim_cc %>% kable("html") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), font_size = 12) %>%
+  scroll_box(width = "100%", height = "400px")
+```
+
+\ \
+Gráfico do número-índice da produção física industrial, insumos da construção civíl:
+```{r echo=FALSE}
+plot_iter(pim_cc)
+```
+
+
+### *Calculo dos pesos $p$*
+
+Cálculo da parcela da produção total de *bens de capital*, em relação à produção de um *bem específico* para FBCF: $$ p_j = \frac{q_j\cdot VP_j}{\sum q_j\cdot VP_j} $$ A proporção $p_j$ será usada como o peso da produção do bem $j$ para FBCF.
+
+```{r}
+source("5.0-pesos_p.R") %>% suppressMessages() %>% suppressWarnings()
+```
+
+Tabela de compatibilização dos códigos SCN e CNAE 2.0 para cálculo dos $p_j$:
+```{r echo=FALSE}
+compat_cods %>% kable("html") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), font_size = 12) %>%
+  scroll_box(width = "100%", height = "400px")
+```
+
+\ \
+
+> TRABALHO EM PROGRESSO... NA CONSTRUÇÕES DOS PESOS A PARTIR DE COMPATIBILIZAÇÃO DE CÓDIGOS
+
+
+***
+
+# Etapa 2:
+
+***
+
+# Etapa 3:
+
