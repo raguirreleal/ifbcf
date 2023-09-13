@@ -29,7 +29,6 @@ Três etapas para construção do indicador, seguindo a referência:
   cabeçalho do script '1.2-FBCF_pdf'.
 - Pasta com funções R no diretório '..\01-Functions'.
 - Pasta para download dos dados no diretório '..\02-Inputs'.
-- Pasta com os arquivos markdown (html e pdf) no diretório '..\03-Markdown'.
 
 ## EXECUÇÃO 
 - Executar o arquivo '1.0-FBCF.R' do diretório raiz.
