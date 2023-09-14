@@ -21,8 +21,8 @@ Três etapas para construção do indicador, seguindo a referência:
 
 ## VERSÕES
 1. Versão 0.1.0 (13 de setembro de 2023):
-   - Código em R para as etapas 1.1 (parcial) e 1.2.
-   - Realizado já todos os web scraping dos dados necessários.
+   - Código em R para as etapas 1.1 (parcial) e 1.2
+   - Realizado já todos os web scraping dos dados necessários
 
 ## CÓDIGIO
 - Código em R e RMarkdown (html e pdf)
