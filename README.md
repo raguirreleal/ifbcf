@@ -1,6 +1,6 @@
 # Índice mensal de FBCF
 
-Construção do indicador baseado no Texto para Discussão 2101 , de jun/2015, do IPEA: Indicadores de Consumo Aparente 
+Construção do indicador baseado no Texto para Discussão 2101, de jun/2015, do IPEA: Indicadores de Consumo Aparente 
 de Bens Industriais: Metodologia e Resultados (Carvalho; Ribeiro).
 
 O cálculo do indicador de formação bruta de capital fixo (FBCF) se baseia no Consumo Aparente (CA) de bens de 
